@@ -1,5 +1,5 @@
-
 #include "filter_autoloudness.h"
+#include "ui.h"  // ← これが不足していた
 #include <vector>
 #include <algorithm>
 #include <cmath>
