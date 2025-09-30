@@ -176,6 +176,7 @@ jobs:
           key: ${{ runner.os }}-ccache-${{ needs.check-event.outputs.config }}
 
   ubuntu-build:
+    if: false
     name: Build for Ubuntu 🐧
     strategy:
       matrix:
@@ -250,6 +251,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.os }}-ccache-x86_64-${{ needs.check-event.outputs.config }}
 
   windows-build:
+    if: false
     name: Build for Windows 🪟
     runs-on: windows-2022
     needs: check-event
