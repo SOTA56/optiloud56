@@ -34,6 +34,12 @@ if(ENABLE_QT)
   )
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+# OptiLoud56 sources (replace plugin-main.c)
+target_sources(${CMAKE_PROJECT_NAME} PRIVATE
+  src/module.cpp
+  src/filter_autoloudness.cpp
+  src/ui.cpp
+)
+target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src include)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
