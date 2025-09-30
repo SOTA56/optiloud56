@@ -1,62 +1,39 @@
-
+// UI_BUILD: BUTTON-V2
 #include "ui.h"
 #include <obs-module.h>
 
-extern obs_source_t* g_ui_current_source;
-
-static const char* K_MODE       = "mode";
-static const char* K_NR         = "nr";
-static const char* K_BGMTRIM    = "bgm_trim";
-static const char* K_LEARN      = "learn";
-static const char* K_LEARN_INFO = "learn_info";
-
-static bool on_mode_changed(obs_properties_t* props, obs_property_t* prop, obs_data_t* settings)
-{
-  (void)prop;
-  if (!props || !settings) return false;
-  const int mode = (int)obs_data_get_int(settings, K_MODE);
-  obs_property_t* pTrim = obs_properties_get(props, K_BGMTRIM);
-  if (pTrim) {
-    const bool visible = (mode == 1); // BGM only
-    obs_property_set_visible(pTrim, visible);
-  }
-  return true;
+extern "C" {
+    obs_properties_t* ui_properties(const AutoParams* init);
 }
 
-static bool on_learn_button(obs_properties_t* props, obs_property_t* p, void* data)
-{
-  (void)props; (void)p; (void)data;
-  if (!g_ui_current_source) return false;
-  obs_data_t* s = obs_source_get_settings(g_ui_current_source);
-  if (!s) return false;
-  obs_data_set_bool(s, K_LEARN, true);
-  obs_source_update(g_ui_current_source, s);
-  obs_data_release(s);
-  return true;
+static inline int get_init_mode(const AutoParams* init) {
+    if (!init) return 0; // default Mic
+    return (int)init->mode; // Mode::Mic==0, Mode::BGM==1 (as defined in your headers)
 }
 
-obs_properties_t* ui_properties(AutoParams* params)
+obs_properties_t* ui_properties(const AutoParams* init)
 {
-  obs_properties_t* props = obs_properties_create();
+    obs_properties_t* props = obs_properties_create();
 
-  obs_property_t* mode = obs_properties_add_list(props, K_MODE, "Mode",
-                            OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
-  obs_property_list_add_int(mode, "Mic", 0);
-  obs_property_list_add_int(mode, "BGM", 1);
-  obs_property_set_modified_callback(mode, on_mode_changed);
+    // Mode
+    obs_property_t* pmode = obs_properties_add_list(
+        props, "mode", "Mode", OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+    obs_property_list_add_int(pmode, "Mic", 0);
+    obs_property_list_add_int(pmode, "BGM", 1);
 
-  obs_properties_add_bool(props, K_NR, "Noise Reduction (simple)");
+    // Noise Reduction
+    obs_properties_add_bool(props, "nr", "Noise Reduction (simple)");
 
-  obs_property_t* pTrim = obs_properties_add_float_slider(props, K_BGMTRIM, "BGM Trim (dB)", -6.0, 6.0, 0.1);
-  if (params) {
-    const bool visible = (params->mode == Mode::BGM);
-    obs_property_set_visible(pTrim, visible);
-  }
+    // Show BGM Trim only when initial mode is BGM
+    if (get_init_mode(init) == 1) {
+        obs_properties_add_float_slider(props, "bgm_trim", "BGM Trim (dB)", -6.0, 6.0, 0.1);
+    }
 
-  obs_properties_add_button(props, "learn_button", "Learn (3s + 5s)", on_learn_button);
-  obs_property_t* hidden = obs_properties_add_bool(props, K_LEARN, "learn_internal");
-  if (hidden) obs_property_set_visible(hidden, false);
+    // Learn (checkbox that triggers countdown+5s measure in the filter)
+    obs_properties_add_bool(props, "learn", "Learn (3s countdown + 5s measure)");
 
-  obs_properties_add_text(props, K_LEARN_INFO, "UI Build: button-3s5s", OBS_TEXT_INFO);
-  return props;
+    // Verification banner
+    obs_properties_add_text(props, "__ui_build", "UI Build: BUTTON-V2", OBS_TEXT_INFO);
+
+    return props;
 }
