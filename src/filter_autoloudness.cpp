@@ -23,7 +23,6 @@ obs_audio_data* AutoLoudnessFilter::process(obs_audio_data* audio)
   std::vector<float*> planes(ch);
   for (int c = 0; c < ch; ++c) planes[c] = reinterpret_cast<float*>(audio->data[c]);
 
-  // Learn: quick average (settings-driven flag is handled in update())
   if (learning_.load()) {
     const float mLUFS = loud_.block_lufs((float const* const*)planes.data(), ch, frames);
     if (mLUFS > -1e8f && std::isfinite(mLUFS)) {
@@ -33,7 +32,6 @@ obs_audio_data* AutoLoudnessFilter::process(obs_audio_data* audio)
     learning_.store(false);
   }
 
-  // micro adaptation
   const float instLUFS = loud_.block_lufs((float const* const*)planes.data(), ch, frames);
   if (instLUFS > -1e8f && std::isfinite(instLUFS)) {
     float micro = 0.05f * (params_.targetLUFS - instLUFS);
@@ -54,7 +52,7 @@ obs_audio_data* AutoLoudnessFilter::process(obs_audio_data* audio)
   return audio;
 }
 
-static const char* flt_get_name(void*) { return "OptiLoud56"; }
+static const char* flt_get_name(void*) { return "OptiLoud56 (ButtonUI)"; }
 
 static void* flt_create(obs_data_t* settings, obs_source_t* source)
 {
@@ -62,7 +60,6 @@ static void* flt_create(obs_data_t* settings, obs_source_t* source)
   ctx->self = source;
 
   ctx->params.mode       = (Mode)obs_data_get_int(settings, "mode");
-  // keep default -16.0 from struct; do not read target_lufs from settings
   ctx->params.nrOn       = obs_data_get_bool(settings, "nr");
   ctx->params.bgmTrimDb  = (float)obs_data_get_double(settings, "bgm_trim");
 

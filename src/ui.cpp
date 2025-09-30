@@ -2,7 +2,6 @@
 #include "ui.h"
 #include <obs-module.h>
 
-// Global current source provided by filter's get_properties
 extern obs_source_t* g_ui_current_source;
 
 static const char* K_MODE       = "mode";
@@ -11,7 +10,6 @@ static const char* K_BGMTRIM    = "bgm_trim";
 static const char* K_LEARN      = "learn";
 static const char* K_LEARN_INFO = "learn_info";
 
-// OBS expects 3-arg signature with obs_data_t*
 static bool on_mode_changed(obs_properties_t* props, obs_property_t* prop, obs_data_t* settings)
 {
   (void)prop;
@@ -19,7 +17,7 @@ static bool on_mode_changed(obs_properties_t* props, obs_property_t* prop, obs_d
   const int mode = (int)obs_data_get_int(settings, K_MODE);
   obs_property_t* pTrim = obs_properties_get(props, K_BGMTRIM);
   if (pTrim) {
-    const bool visible = (mode == 1); // 1=BGM
+    const bool visible = (mode == 1); // BGM only
     obs_property_set_visible(pTrim, visible);
   }
   return true;
@@ -56,10 +54,9 @@ obs_properties_t* ui_properties(AutoParams* params)
   }
 
   obs_properties_add_button(props, "learn_button", "Learn (3s + 5s)", on_learn_button);
-  // hidden bool as trigger storage
   obs_property_t* hidden = obs_properties_add_bool(props, K_LEARN, "learn_internal");
   if (hidden) obs_property_set_visible(hidden, false);
 
-  obs_properties_add_text(props, K_LEARN_INFO, "", OBS_TEXT_INFO);
+  obs_properties_add_text(props, K_LEARN_INFO, "UI Build: button-3s5s", OBS_TEXT_INFO);
   return props;
 }

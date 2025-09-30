@@ -10,6 +10,6 @@ OBS_MODULE_USE_DEFAULT_LOCALE("OptiLoud56", "data/locale")
 bool obs_module_load(void)
 {
   obs_register_source(&optiloud56_filter_info);
-  blog(LOG_INFO, "[OptiLoud56] filter registered");
+  blog(LOG_INFO, "[OptiLoud56] filter registered (ButtonUI build)");
   return true;
 }
