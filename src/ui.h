@@ -1,3 +1,4 @@
+
 #pragma once
 #include <obs-module.h>
 #include "filter_autoloudness.h"
@@ -14,6 +15,9 @@ inline obs_properties_t* ui_properties(const AutoParams* /*cur*/)
   obs_properties_add_float_slider(p, "target_lufs", "Target LUFS", -30.0, -10.0, 0.5);
   obs_properties_add_bool(p, "nr", "Noise Reduction (simple)");
   obs_properties_add_float_slider(p, "bgm_trim", "BGM Trim (dB)", -6.0, 6.0, 0.5);
+
+  // Learn flag
+  obs_properties_add_bool(p, "learn", "Learn (analyze short section)");
 
   return p;
 }

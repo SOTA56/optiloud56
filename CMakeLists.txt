@@ -1,3 +1,4 @@
+
 cmake_minimum_required(VERSION 3.28...3.30)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCOPE)
@@ -34,11 +35,12 @@ if(ENABLE_QT)
   )
 endif()
 
-# OptiLoud56 sources (replace plugin-main.c)
+# OptiLoud56 Phase 1 sources
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
   src/module.cpp
   src/filter_autoloudness.cpp
   src/ui.cpp
+  src/dsp_loudness.cpp
 )
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE src include)
 

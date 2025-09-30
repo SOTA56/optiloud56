@@ -1,14 +1,56 @@
+
 #include "filter_autoloudness.h"
-#include "ui.h"
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+static inline float clampf(float x, float lo, float hi){ return std::max(lo, std::min(hi, x)); }
 
 static const char* S_ID = "optiloud56_filter";
 
-/* OBS glue */
 struct filter_context {
   obs_source_t*        self;
   AutoLoudnessFilter*  impl;
   AutoParams           params;
 };
+
+obs_audio_data* AutoLoudnessFilter::process(obs_audio_data* audio)
+{
+  if (!audio) return nullptr;
+  const size_t frames = audio->frames;
+  const int ch = params_.channels;
+
+  std::vector<float*> planes(ch);
+  for (int c = 0; c < ch; ++c) planes[c] = reinterpret_cast<float*>(audio->data[c]);
+
+  if (learning_.load()) {
+    const float mLUFS = loud_.block_lufs((float const* const*)planes.data(), ch, frames);
+    if (mLUFS > -1e8f && std::isfinite(mLUFS)) {
+      const float diff = clampf(params_.targetLUFS - mLUFS, -24.0f, 24.0f);
+      appliedGainDb_ = 0.7f * appliedGainDb_ + 0.3f * diff;
+    }
+    learning_.store(false);
+  }
+
+  const float instLUFS = loud_.block_lufs((float const* const*)planes.data(), ch, frames);
+  if (instLUFS > -1e8f && std::isfinite(instLUFS)) {
+    float micro = 0.05f * (params_.targetLUFS - instLUFS);
+    micro = clampf(micro, -0.5f, 0.5f);
+    appliedGainDb_ = 0.98f * appliedGainDb_ + 0.02f * (appliedGainDb_ + micro);
+    appliedGainDb_ = clampf(appliedGainDb_, -24.0f, 24.0f);
+  }
+
+  float lin = std::pow(10.0f, appliedGainDb_ / 20.0f);
+  if (params_.mode == Mode::BGM) {
+    lin *= std::pow(10.0f, params_.bgmTrimDb / 20.0f);
+  }
+
+  for (int c = 0; c < ch; ++c) {
+    float* s = planes[c];
+    for (size_t i = 0; i < frames; ++i) s[i] *= lin;
+  }
+  return audio;
+}
 
 static const char* flt_get_name(void*) { return "OptiLoud56"; }
 
@@ -55,6 +97,11 @@ static void flt_update(void* data, obs_data_t* settings)
   ctx->params.nrOn       = obs_data_get_bool(settings, "nr");
   ctx->params.bgmTrimDb  = (float)obs_data_get_double(settings, "bgm_trim");
 
+  if (obs_data_get_bool(settings, "learn")) {
+    ctx->impl->request_learn();
+    obs_data_set_bool(settings, "learn", false);
+  }
+
   ctx->impl->update(ctx->params);
 }
 
@@ -62,7 +109,7 @@ static obs_audio_data* flt_filter_audio(void* data, obs_audio_data* audio)
 {
   auto* ctx = (filter_context*)data;
   if (!ctx || !audio) return audio;
-  return ctx->impl->process(audio); // pass-through
+  return ctx->impl->process(audio);
 }
 
 extern "C" {
